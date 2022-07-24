@@ -11,7 +11,7 @@ impl Display for Literal {
         match &self {
             Literal::Number(num) => num.fmt(f),
             Literal::String(string) => string.fmt(f),
-            Literal::Nil => write!(f, "nil"),
+            Literal::Nil => write!(f, "null"),
         }
     }
 }
