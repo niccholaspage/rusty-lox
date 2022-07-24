@@ -1,0 +1,2 @@
+# rusty-lox
+An implementation of the tree-walk interpreter from the [Crafting Interpreters](https://craftinginterpreters.com/) book in Rust. It is currently unfinished, and is only implemented up to Chapter 4. The goal is to finish up the interpreter and end up with an implementation of the interpreter that matches one to one in functionality with the Java version written in the book and passes all tests.
