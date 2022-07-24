@@ -18,22 +18,22 @@ impl Scanner {
     pub fn new(source: Vec<u8>) -> Scanner {
         let mut keywords = HashMap::new();
 
-        keywords.insert("and", TokenType::And);
-        keywords.insert("class", TokenType::Class);
-        keywords.insert("else", TokenType::Else);
-        keywords.insert("false", TokenType::False);
-        keywords.insert("for", TokenType::For);
-        keywords.insert("fun", TokenType::Fun);
-        keywords.insert("if", TokenType::If);
-        keywords.insert("nil", TokenType::Nil);
-        keywords.insert("or", TokenType::Or);
-        keywords.insert("print", TokenType::Print);
-        keywords.insert("return", TokenType::Return);
-        keywords.insert("super", TokenType::Super);
-        keywords.insert("this", TokenType::This);
-        keywords.insert("true", TokenType::True);
-        keywords.insert("var", TokenType::Var);
-        keywords.insert("while", TokenType::While);
+        keywords.insert(b"and".to_vec(), TokenType::And);
+        keywords.insert(b"class".to_vec(), TokenType::Class);
+        keywords.insert(b"else".to_vec(), TokenType::Else);
+        keywords.insert(b"false".to_vec(), TokenType::False);
+        keywords.insert(b"for".to_vec(), TokenType::For);
+        keywords.insert(b"fun".to_vec(), TokenType::Fun);
+        keywords.insert(b"if".to_vec(), TokenType::If);
+        keywords.insert(b"nil".to_vec(), TokenType::Nil);
+        keywords.insert(b"or".to_vec(), TokenType::Or);
+        keywords.insert(b"print".to_vec(), TokenType::Print);
+        keywords.insert(b"return".to_vec(), TokenType::Return);
+        keywords.insert(b"super".to_vec(), TokenType::Super);
+        keywords.insert(b"this".to_vec(), TokenType::This);
+        keywords.insert(b"true".to_vec(), TokenType::True);
+        keywords.insert(b"var".to_vec(), TokenType::Var);
+        keywords.insert(b"while".to_vec(), TokenType::While);
 
         Scanner {
             source,
@@ -41,7 +41,7 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
-            keywords: HashMap::new(),
+            keywords,
         }
     }
 
