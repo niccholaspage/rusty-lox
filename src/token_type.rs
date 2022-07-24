@@ -58,16 +58,19 @@ impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let debug_name = format!("{:?}", self);
 
-        let first_letter = &debug_name[0..1];
+        let debug_indices = debug_name[1..].chars();
 
-        let mut name_parts: Vec<String> = debug_name[1..].split_inclusive(char::is_uppercase).map(str::to_string).collect();
+        let mut display_name = debug_name[..1].to_string();
 
-        for name in &mut name_parts {
-            name.make_ascii_uppercase();
+        for char in debug_indices {
+            if char.is_uppercase() {
+                display_name.push('_');
+                display_name.push(char);
+            } else {
+                display_name.push(char.to_ascii_uppercase());
+            }
         }
 
-        let display_name = name_parts.join("_");
-
-        write!(f, "{first_letter}{display_name}")
+        write!(f, "{}", display_name)
     }
 }
