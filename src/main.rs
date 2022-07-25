@@ -1,4 +1,3 @@
-mod ast_printer;
 mod expr;
 mod literal;
 mod scanner;
@@ -13,11 +12,7 @@ use std::{
     process::exit,
 };
 
-use ast_printer::AstPrinter;
-use expr::Expr;
-use literal::Literal;
-use token::Token;
-use token_type::TokenType;
+use crate::scanner::Scanner;
 
 pub struct Context {
     had_error: bool,
@@ -95,35 +90,11 @@ fn run_prompt(context: &mut Context) {
 }
 
 fn run(context: &mut Context, source: Vec<u8>) {
-    // let mut scanner = Scanner::new(source);
+    let mut scanner = Scanner::new(source);
 
-    // let tokens = scanner.scan_tokens(context);
+    let tokens = scanner.scan_tokens(context);
 
-    // for token in tokens {
-    //     println!("{}", token);
-    // }
-    let expr = Expr::Binary {
-        left: Box::new(Expr::Unary {
-            operator: Token {
-                r#type: TokenType::Minus,
-                lexeme: "-".to_string(),
-                literal: Literal::Nil,
-                line: 1,
-            },
-            right: Box::new(Expr::Literal(Literal::Number(123.0))),
-        }),
-        operator: Token {
-            r#type: TokenType::Star,
-            lexeme: "*".to_string(),
-            literal: Literal::Nil,
-            line: 1,
-        },
-        right: Box::new(Expr::Grouping {
-            expression: Box::new(Expr::Literal(Literal::Number(45.67))),
-        }),
-    };
-
-    let mut printer = AstPrinter {};
-
-    println!("{}", printer.print(&expr));
+    for token in tokens {
+        println!("{}", token);
+    }
 }
