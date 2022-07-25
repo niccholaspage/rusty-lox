@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 #[derive(Debug, Copy, Clone)]
-#[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
