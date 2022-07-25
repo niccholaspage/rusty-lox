@@ -1,5 +1,7 @@
+mod ast_printer;
 mod expr;
 mod literal;
+mod parser;
 mod scanner;
 mod token;
 mod token_type;
@@ -11,6 +13,11 @@ use std::{
     io::{self, Write},
     process::exit,
 };
+
+use ast_printer::AstPrinter;
+use parser::Parser;
+use token::Token;
+use token_type::TokenType;
 
 use crate::scanner::Scanner;
 
@@ -30,6 +37,14 @@ impl Context {
     fn report(&mut self, line: usize, r#where: &str, message: &str) {
         eprintln!("[line {line}] Error{where}: {message}");
         self.had_error = true;
+    }
+
+    fn error_with_token(&mut self, token: &Token, message: &str) {
+        if token.r#type == TokenType::Eof {
+            self.report(token.line, " at end", message);
+        } else {
+            self.report(token.line, &format!(" at '{}'", token.lexeme), message);
+        }
     }
 }
 
@@ -94,7 +109,13 @@ fn run(context: &mut Context, source: Vec<u8>) {
 
     let tokens = scanner.scan_tokens(context);
 
-    for token in tokens {
-        println!("{}", token);
+    let parser = Parser::new(context, tokens);
+    let expression = parser.parse().unwrap();
+
+    if context.had_error {
+        return;
     }
+
+    let mut printer = AstPrinter {};
+    println!("{}", printer.print(&expression));
 }

@@ -45,7 +45,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self, context: &mut Context) -> &[Token] {
+    pub fn scan_tokens(&mut self, context: &mut Context) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token(context);
@@ -58,7 +58,7 @@ impl Scanner {
             line: self.line,
         });
 
-        &self.tokens
+        self.tokens
     }
 
     fn scan_token(&mut self, context: &mut Context) {
