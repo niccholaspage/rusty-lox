@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[derive(PartialEq)]
 pub enum Literal {
     Number(f64),
     String(String),
