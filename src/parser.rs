@@ -35,7 +35,7 @@ impl<'a> Parser<'a> {
         let mut expr = self.comparison()?;
 
         while self.r#match(&[TokenType::BangEqual, TokenType::EqualEqual]) {
-            let operator = self.previous();
+            let operator = self.previous().clone();
             let right = self.comparison()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -56,7 +56,7 @@ impl<'a> Parser<'a> {
             TokenType::Less,
             TokenType::LessEqual,
         ]) {
-            let operator = self.previous();
+            let operator = self.previous().clone();
             let right = self.term()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
         let mut expr = self.factor()?;
 
         while self.r#match(&[TokenType::Minus, TokenType::Plus]) {
-            let operator = self.previous();
+            let operator = self.previous().clone();
             let right = self.factor()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -88,7 +88,7 @@ impl<'a> Parser<'a> {
         let mut expr = self.unary()?;
 
         while self.r#match(&[TokenType::Slash, TokenType::Star]) {
-            let operator = self.previous();
+            let operator = self.previous().clone();
             let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.r#match(&[TokenType::Bang, TokenType::Minus]) {
-            let operator = self.previous();
+            let operator = self.previous().clone();
             let right = self.unary()?;
             return Ok(Expr::Unary {
                 operator: operator.clone(),
