@@ -11,7 +11,7 @@ use std::{
     cmp::Ordering,
     env, fs,
     io::{self, Write},
-    process::exit,
+    process::exit, cell::RefCell,
 };
 
 use ast_printer::AstPrinter;
@@ -51,29 +51,29 @@ impl Context {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let mut context = Context::new();
+    let context = RefCell::new(Context::new());
 
     match args.len().cmp(&2) {
         Ordering::Greater => {
             println!("Usage: rusty-lox [script]");
         }
         Ordering::Equal => {
-            run_file(&mut context, &args[1]);
+            run_file(context, &args[1]);
         }
         Ordering::Less => {
-            run_prompt(&mut context);
+            run_prompt(context);
         }
     }
 }
 
-fn run_file(context: &mut Context, path: &str) {
+fn run_file(context: RefCell<Context>, path: &str) {
     let content = fs::read(&path);
 
     match content {
         Ok(content) => {
-            run(context, content);
+            run(&context, content);
 
-            if context.had_error {
+            if context.borrow().had_error {
                 exit(65);
             }
         }
@@ -85,7 +85,7 @@ fn run_file(context: &mut Context, path: &str) {
     };
 }
 
-fn run_prompt(context: &mut Context) {
+fn run_prompt(context: RefCell<Context>) {
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
@@ -98,23 +98,25 @@ fn run_prompt(context: &mut Context) {
 
         line.truncate(line.len() - 1);
 
-        run(context, line.into_bytes());
+        run(&context, line.into_bytes());
 
-        context.had_error = false;
+        context.borrow_mut().had_error = false;
     }
 }
 
-fn run(context: &mut Context, source: Vec<u8>) {
-    let mut scanner = Scanner::new(source);
+fn run(context: &RefCell<Context>, source: Vec<u8>) {
+    let scanner = Scanner::new(source);
 
     let tokens = scanner.scan_tokens(context);
 
-    let parser = Parser::new(context, tokens);
-    let expression = parser.parse().unwrap();
+    let mut parser = Parser::new(context, tokens);
+    let expression = parser.parse();
 
-    if context.had_error {
+    if context.borrow().had_error {
         return;
     }
+
+    let expression = expression.unwrap();
 
     let mut printer = AstPrinter {};
     println!("{}", printer.print(&expression));

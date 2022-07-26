@@ -2,6 +2,7 @@ use crate::literal::Literal;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use crate::Context;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::str;
 
@@ -45,10 +46,10 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self, context: &mut Context) -> Vec<Token> {
+    pub fn scan_tokens(mut self, context: &RefCell<Context>) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token(context);
+            self.scan_token(&mut context.borrow_mut());
         }
 
         self.tokens.push(Token {
