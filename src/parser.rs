@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
             let operator = self.previous().clone();
             let right = self.unary()?;
             return Ok(Expr::Unary {
-                operator: operator.clone(),
+                operator,
                 right: Box::new(right),
             });
         }
