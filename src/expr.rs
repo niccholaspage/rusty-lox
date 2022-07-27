@@ -1,17 +1,17 @@
 use crate::{literal::Literal, token::Token};
 
-pub enum Expr {
+pub enum Expr<'a> {
     Binary {
-        left: Box<Expr>,
-        operator: Token,
-        right: Box<Expr>,
+        left: &'a Expr<'a>,
+        operator: &'a Token,
+        right: &'a Expr<'a>,
     },
     Grouping {
-        expression: Box<Expr>,
+        expression: &'a Expr<'a>,
     },
     Literal(Literal),
     Unary {
-        operator: Token,
-        right: Box<Expr>,
+        operator: &'a Token,
+        right: &'a Expr<'a>,
     },
 }

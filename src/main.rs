@@ -18,6 +18,7 @@ use ast_printer::AstPrinter;
 use parser::Parser;
 use token::Token;
 use token_type::TokenType;
+use typed_arena::Arena;
 
 use crate::scanner::Scanner;
 
@@ -109,8 +110,9 @@ fn run(context: &RefCell<Context>, source: Vec<u8>) {
 
     let tokens = scanner.scan_tokens(context);
 
+    let arena = Arena::new();
     let mut parser = Parser::new(context, tokens);
-    let expression = parser.parse();
+    let expression = parser.parse(&arena);
 
     if context.borrow().had_error {
         return;
@@ -119,5 +121,5 @@ fn run(context: &RefCell<Context>, source: Vec<u8>) {
     let expression = expression.unwrap();
 
     let mut printer = AstPrinter {};
-    println!("{}", printer.print(&expression));
+    println!("{}", printer.print(expression));
 }

@@ -28,9 +28,9 @@ impl Visitor<String> for AstPrinter {
     fn visit_expr(&mut self, expr: &Expr) -> String {
         match expr {
             Expr::Binary {
-                ref left,
+                left,
                 operator,
-                ref right,
+                right,
             } => self.parenthesize(&operator.lexeme, &[left, right]),
             Expr::Grouping { expression } => self.parenthesize("group", &[expression]),
             Expr::Literal(value) => {
@@ -42,7 +42,7 @@ impl Visitor<String> for AstPrinter {
             }
             Expr::Unary {
                 operator,
-                ref right,
+                right,
             } => self.parenthesize(&operator.lexeme, &[right]),
         }
     }

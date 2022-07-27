@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 use crate::{token_type::TokenType, literal::Literal};
 
-#[derive(Clone)]
 pub struct Token {
     pub r#type: TokenType,
     pub lexeme: String,
