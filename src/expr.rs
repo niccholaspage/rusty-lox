@@ -9,7 +9,7 @@ pub enum Expr<'a> {
     Grouping {
         expression: &'a Expr<'a>,
     },
-    Literal(Literal),
+    Literal(&'a Literal),
     Unary {
         operator: &'a Token,
         right: &'a Expr<'a>,

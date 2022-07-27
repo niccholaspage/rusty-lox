@@ -34,7 +34,7 @@ impl Visitor<String> for AstPrinter {
             } => self.parenthesize(&operator.lexeme, &[left, right]),
             Expr::Grouping { expression } => self.parenthesize("group", &[expression]),
             Expr::Literal(value) => {
-                if value == &Literal::Nil {
+                if *value == &Literal::Nil {
                     "nil".to_string()
                 } else {
                     format!("{value}")

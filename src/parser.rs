@@ -12,6 +12,10 @@ pub struct Parser<'a> {
 
 struct ParseError;
 
+const FALSE_LITERAL: Literal = Literal::Bool(false);
+const TRUE_LITERAL: Literal = Literal::Bool(true);
+const NIL_LITERAL: Literal = Literal::Nil;
+
 impl<'a> Parser<'a> {
     pub fn new(context: &RefCell<Context>, tokens: Vec<Token>) -> Parser {
         Parser {
@@ -117,17 +121,17 @@ impl<'a> Parser<'a> {
 
     fn primary(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
         if self.r#match(&[TokenType::False]) {
-            return Ok(arena.alloc(Expr::Literal(Literal::Bool(false))));
+            return Ok(arena.alloc(Expr::Literal(&FALSE_LITERAL)));
         }
         if self.r#match(&[TokenType::True]) {
-            return Ok(arena.alloc(Expr::Literal(Literal::Bool(true))));
+            return Ok(arena.alloc(Expr::Literal(&TRUE_LITERAL)));
         }
         if self.r#match(&[TokenType::Nil]) {
-            return Ok(arena.alloc(Expr::Literal(Literal::Nil)));
+            return Ok(arena.alloc(Expr::Literal(&NIL_LITERAL)));
         }
 
         if self.r#match(&[TokenType::Number, TokenType::String]) {
-            return Ok(arena.alloc(Expr::Literal(self.get_token_at_index(self.previous()).literal.clone())));
+            return Ok(arena.alloc(Expr::Literal(&self.get_token_at_index(self.previous()).literal)));
         }
 
         if self.r#match(&[TokenType::LeftParen]) {
