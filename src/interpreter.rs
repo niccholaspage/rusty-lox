@@ -102,7 +102,7 @@ impl Visitor<Result<Value, RuntimeError>> for Interpreter {
                     return Ok(Value::Bool(!Interpreter::is_truthy(&right)));
                 } else if operator.r#type == TokenType::Minus {
                     let number = Interpreter::check_number_operand(operator, right)?;
-                    return Ok(Value::Number(number));
+                    return Ok(Value::Number(-number));
                 }
 
                 // Unreachable
