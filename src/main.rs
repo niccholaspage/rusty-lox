@@ -67,25 +67,27 @@ fn main() {
 
     let context = RefCell::new(Context::new());
 
+    let mut interpreter = Interpreter;
+
     match args.len().cmp(&2) {
         Ordering::Greater => {
             println!("Usage: rusty-lox [script]");
         }
         Ordering::Equal => {
-            run_file(context, &args[1]);
+            run_file(context, &mut interpreter, &args[1]);
         }
         Ordering::Less => {
-            run_prompt(context);
+            run_prompt(context, &mut interpreter);
         }
     }
 }
 
-fn run_file(context: RefCell<Context>, path: &str) {
+fn run_file(context: RefCell<Context>, interpreter: &mut Interpreter, path: &str) {
     let content = fs::read(&path);
 
     match content {
         Ok(content) => {
-            run(&context, content);
+            run(&context, interpreter, content);
 
             let context = context.borrow();
             if context.had_error {
@@ -104,7 +106,7 @@ fn run_file(context: RefCell<Context>, path: &str) {
     };
 }
 
-fn run_prompt(context: RefCell<Context>) {
+fn run_prompt(context: RefCell<Context>, interpreter: &mut Interpreter) {
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
@@ -117,13 +119,13 @@ fn run_prompt(context: RefCell<Context>) {
 
         line.truncate(line.len() - 1);
 
-        run(&context, line.into_bytes());
+        run(&context, interpreter, line.into_bytes());
 
         context.borrow_mut().had_error = false;
     }
 }
 
-fn run(context: &RefCell<Context>, source: Vec<u8>) {
+fn run(context: &RefCell<Context>, interpreter: &mut Interpreter, source: Vec<u8>) {
     let scanner = Scanner::new(source);
 
     let tokens = scanner.scan_tokens(context);
@@ -138,5 +140,5 @@ fn run(context: &RefCell<Context>, source: Vec<u8>) {
 
     let expression = expression.unwrap();
 
-    context.borrow_mut().interpreter.interpret(context, expression);
+    interpreter.interpret(context, expression);
 }
