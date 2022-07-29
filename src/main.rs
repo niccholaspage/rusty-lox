@@ -6,6 +6,7 @@ mod scanner;
 mod token;
 mod token_type;
 mod visitor;
+mod interpreter;
 
 use std::{
     cmp::Ordering,
@@ -15,6 +16,7 @@ use std::{
 };
 
 use ast_printer::AstPrinter;
+use interpreter::{RuntimeError, Interpreter};
 use parser::Parser;
 use token::Token;
 use token_type::TokenType;
@@ -23,16 +25,27 @@ use typed_arena::Arena;
 use crate::scanner::Scanner;
 
 pub struct Context {
+    interpreter: Interpreter,
     had_error: bool,
+    had_runtime_error: bool
 }
 
 impl Context {
     fn new() -> Context {
-        Context { had_error: false }
+        Context {
+            interpreter: Interpreter,
+            had_error: false,
+            had_runtime_error: false
+        }
     }
 
     fn error(&mut self, line: usize, message: &str) {
         self.report(line, "", message);
+    }
+
+    fn runtime_error(&mut self, error: RuntimeError) {
+        println!("{}\n[line {}]", error.message, error.token_line);
+        self.had_runtime_error = true;
     }
 
     fn report(&mut self, line: usize, r#where: &str, message: &str) {
@@ -74,8 +87,13 @@ fn run_file(context: RefCell<Context>, path: &str) {
         Ok(content) => {
             run(&context, content);
 
-            if context.borrow().had_error {
+            let context = context.borrow();
+            if context.had_error {
                 exit(65);
+            }
+
+            if context.had_runtime_error {
+                exit(70);
             }
         }
         Err(_) => {
@@ -120,6 +138,5 @@ fn run(context: &RefCell<Context>, source: Vec<u8>) {
 
     let expression = expression.unwrap();
 
-    let mut printer = AstPrinter {};
-    println!("{}", printer.print(expression));
+    context.borrow_mut().interpreter.interpret(context, expression);
 }
