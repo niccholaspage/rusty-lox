@@ -6,11 +6,11 @@ use crate::{
     stmt::{self, Stmt},
     token::Token,
     token_type::TokenType,
-    Context,
+    Context, environment::Environment,
 };
 
 #[derive(PartialEq)]
-enum Value {
+pub enum Value {
     Bool(bool),
     Number(f64),
     String(String),
@@ -19,19 +19,21 @@ enum Value {
 
 pub struct RuntimeError {
     pub token_line: usize,
-    pub message: &'static str,
+    pub message: String,
 }
 
 impl RuntimeError {
-    fn new(token: &Token, message: &'static str) -> RuntimeError {
+    pub fn new<T: Into<String>>(token: &Token, message: T) -> RuntimeError {
         RuntimeError {
             token_line: token.line,
-            message,
+            message: message.into(),
         }
     }
 }
 
-pub struct Interpreter;
+pub struct Interpreter {
+    environment: Environment
+}
 
 impl Interpreter {
     pub fn interpret(&mut self, context: &RefCell<Context>, statements: Vec<Stmt>) {
@@ -75,10 +77,10 @@ impl Interpreter {
     fn check_number_operand(operator: &Token, operand: Value) -> Result<f64, RuntimeError> {
         match operand {
             Value::Number(num) => Ok(num),
-            _ => Err(RuntimeError {
-                token_line: operator.line,
-                message: "Operand must be a number.",
-            }),
+            _ => Err(RuntimeError::new(
+                operator,
+                "Operand must be a number.",
+            )),
         }
     }
 
@@ -118,6 +120,9 @@ impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
 
                 // Unreachable
                 todo!("Handle this case later!")
+            }
+            Expr::Variable(name) => {
+                self.environment.get(name)
             }
             Expr::Binary {
                 left,
@@ -208,6 +213,15 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
             Stmt::Print(expression) => {
                 let value = self.evaluate(expression)?;
                 println!("{}", Interpreter::stringify(value));
+                Ok(())
+            },
+            Stmt::Var { name, initializer } => {
+                let value = Value::Nil;
+                if let Some(initializer) = initializer {
+                    value = self.evaluate(initializer)?;
+                }
+
+                self.environment.define(name.lexeme, value);
                 Ok(())
             }
         }

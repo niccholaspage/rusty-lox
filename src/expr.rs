@@ -18,4 +18,5 @@ pub enum Expr<'a> {
         operator: &'a Token,
         right: &'a Expr<'a>,
     },
+    Variable(&'a Token)
 }

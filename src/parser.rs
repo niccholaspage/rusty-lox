@@ -28,11 +28,11 @@ impl<'a> Parser<'a> {
     pub fn parse(&'a mut self, arena: &'a Arena<Expr<'a>>) -> Option<Vec<Stmt>> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            let statement = self.statement(arena);
+            let statement = self.declaration(arena);
 
             match statement {
-                Ok(statement) => statements.push(statement),
-                Err(_) => return None
+                Some(statement) => statements.push(statement),
+                None => ()
             }
         }
 
@@ -41,6 +41,26 @@ impl<'a> Parser<'a> {
 
     fn expression(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
         self.equality(arena)
+    }
+
+    fn declaration(&'a self, arena: &'a Arena<Expr<'a>>) -> Option<Stmt<'_>> {
+        if self.r#match(&[TokenType::Var]) {
+            return match self.var_declaration(arena) {
+                Ok(statement) => Some(statement),
+                Err(_) => {
+                    self.synchronize();
+                    None
+                }
+            };
+        }
+
+        match self.statement(arena) {
+            Ok(statement) => Some(statement),
+            Err(_) => {
+                self.synchronize();
+                None
+            }
+        }
     }
 
     fn statement(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Stmt<'_>, ParseError> {
@@ -57,6 +77,19 @@ impl<'a> Parser<'a> {
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(Stmt::Print(value))
+    }
+
+    fn var_declaration(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Stmt<'_>, ParseError> {
+        let name = self.consume(TokenType::Identifier, "Expect variable name.")?;
+
+        let mut initializer = None;
+
+        if self.r#match(&[TokenType::Equal]) {
+            initializer = Some(self.expression(arena)?);
+        }
+
+        self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.");
+        Ok(Stmt::Var { name, initializer })
     }
 
     fn expression_statement(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Stmt<'_>, ParseError> {
@@ -164,6 +197,10 @@ impl<'a> Parser<'a> {
             return Ok(arena.alloc(Expr::Literal(&self.get_token_at_index(self.previous()).literal)));
         }
 
+        if self.r#match(&[TokenType::Identifier]) {
+            return Ok(arena.alloc(Expr::Variable(&self.get_token_at_index(self.previous()))));
+        }
+
         if self.r#match(&[TokenType::LeftParen]) {
             let expr = self.expression(arena)?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
@@ -199,7 +236,7 @@ impl<'a> Parser<'a> {
         ParseError
     }
 
-    fn synchronize(&mut self) {
+    fn synchronize(&self) {
         self.advance();
 
         while !self.is_at_end() {

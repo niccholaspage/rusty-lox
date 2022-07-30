@@ -6,6 +6,7 @@ mod token;
 mod token_type;
 mod interpreter;
 mod stmt;
+mod environment;
 
 use std::{
     cmp::Ordering,
