@@ -1,10 +1,12 @@
 use std::cell::RefCell;
 
+use typed_arena::Arena;
+
 use crate::{
     environment::Environment,
-    expr::{self, Expr},
+    expr::Expr,
     literal::Literal,
-    stmt::{self, Stmt},
+    stmt::Stmt,
     token::Token,
     token_type::TokenType,
     Context,
@@ -32,14 +34,16 @@ impl RuntimeError {
     }
 }
 
-pub struct Interpreter {
-    environment: Environment
+pub struct Interpreter<'a> {
+    environment: Environment<'a>,
+    arena: &'a Arena<Value>
 }
 
-impl Interpreter {
-    pub fn new() -> Interpreter {
+impl<'a> Interpreter<'a> {
+    pub fn new(arena: &'a Arena<Value>) -> Interpreter<'a> {
         Interpreter {
             environment: Environment::new(),
+            arena
         }
     }
 
@@ -52,12 +56,12 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
-        expr::Visitor::visit_expr(self, expr)
+    fn evaluate(&mut self, expr: &Expr) -> Result<&'a Value, RuntimeError> {
+        self.visit_expr(expr)
     }
 
     fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
-        stmt::Visitor::visit_stmt(self, stmt)
+        self.visit_stmt(stmt)
     }
 
     fn is_truthy(value: &Value) -> bool {
@@ -72,18 +76,18 @@ impl Interpreter {
         a == b
     }
 
-    fn stringify(value: Value) -> String {
+    fn stringify(value: &Value) -> String {
         match value {
             Value::Nil => "nil".to_string(),
             Value::Number(number) => format!("{number}"),
             Value::Bool(bool) => format!("{bool}"),
-            Value::String(str) => str,
+            Value::String(str) => str.clone(),
         }
     }
 
-    fn check_number_operand(operator: &Token, operand: Value) -> Result<f64, RuntimeError> {
+    fn check_number_operand(operator: &Token, operand: &Value) -> Result<f64, RuntimeError> {
         match operand {
-            Value::Number(num) => Ok(num),
+            Value::Number(num) => Ok(*num),
             _ => Err(RuntimeError::new(operator, "Operand must be a number.")),
         }
     }
@@ -100,15 +104,15 @@ impl Interpreter {
     }
 }
 
-impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+impl<'a> Interpreter<'a> {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<&'a Value, RuntimeError> {
         match expr {
             Expr::Literal(literal) => {
                 match literal {
-                    Literal::Bool(bool) => Ok(Value::Bool(*bool)),
-                    Literal::Number(f64) => Ok(Value::Number(*f64)),
-                    Literal::String(string) => Ok(Value::String(string.clone())), // Optimize away this clone
-                    Literal::Nil => Ok(Value::Nil),
+                    Literal::Bool(bool) => Ok(self.arena.alloc(Value::Bool(*bool))),
+                    Literal::Number(f64) => Ok(self.arena.alloc(Value::Number(*f64))),
+                    Literal::String(string) => Ok(self.arena.alloc(Value::String(string.clone()))), // Optimize away this clone
+                    Literal::Nil => Ok(self.arena.alloc(Value::Nil)),
                 }
             }
             Expr::Grouping { expression } => self.evaluate(expression),
@@ -116,10 +120,10 @@ impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
                 let right = self.evaluate(right)?;
 
                 if operator.r#type == TokenType::Bang {
-                    return Ok(Value::Bool(!Interpreter::is_truthy(&right)));
+                    return Ok(self.arena.alloc(Value::Bool(!Interpreter::is_truthy(right))));
                 } else if operator.r#type == TokenType::Minus {
                     let number = Interpreter::check_number_operand(operator, right)?;
-                    return Ok(Value::Number(-number));
+                    return Ok(self.arena.alloc(Value::Number(-number)));
                 }
 
                 // Unreachable
@@ -136,47 +140,47 @@ impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
 
                 match operator.r#type {
                     TokenType::BangEqual => {
-                        return Ok(Value::Bool(!Interpreter::is_equal(&left, &right)))
+                        return Ok(self.arena.alloc(Value::Bool(!Interpreter::is_equal(left, right))))
                     }
                     TokenType::EqualEqual => {
-                        return Ok(Value::Bool(Interpreter::is_equal(&left, &right)))
+                        return Ok(self.arena.alloc(Value::Bool(Interpreter::is_equal(left, right))))
                     }
                     TokenType::Greater => {
                         let (left, right) =
-                            Interpreter::check_number_operands(operator, &left, &right)?;
-                        return Ok(Value::Bool(left > right));
+                            Interpreter::check_number_operands(operator, left, right)?;
+                        return Ok(self.arena.alloc(Value::Bool(left > right)));
                     }
                     TokenType::GreaterEqual => {
                         let (left, right) =
-                            Interpreter::check_number_operands(operator, &left, &right)?;
-                        return Ok(Value::Bool(left >= right));
+                            Interpreter::check_number_operands(operator, left, right)?;
+                        return Ok(self.arena.alloc(Value::Bool(left >= right)));
                     }
                     TokenType::Less => {
                         let (left, right) =
-                            Interpreter::check_number_operands(operator, &left, &right)?;
-                        return Ok(Value::Bool(left < right));
+                            Interpreter::check_number_operands(operator, left, right)?;
+                        return Ok(self.arena.alloc(Value::Bool(left < right)));
                     }
                     TokenType::LessEqual => {
                         let (left, right) =
-                            Interpreter::check_number_operands(operator, &left, &right)?;
-                        return Ok(Value::Bool(left <= right));
+                            Interpreter::check_number_operands(operator, left, right)?;
+                        return Ok(self.arena.alloc(Value::Bool(left <= right)));
                     }
                     TokenType::Minus => {
                         return {
                             let (left, right) =
-                                Interpreter::check_number_operands(operator, &left, &right)?;
-                            Ok(Value::Number(left - right))
+                                Interpreter::check_number_operands(operator, left, right)?;
+                            Ok(self.arena.alloc(Value::Number(left - right)))
                         }
                     }
                     TokenType::Plus => {
-                        let result = Interpreter::check_number_operands(operator, &left, &right);
+                        let result = Interpreter::check_number_operands(operator, left, right);
 
                         if let Ok((left, right)) = result {
-                            return Ok(Value::Number(left + right));
-                        } else if let (Value::String(left), Value::String(right)) = &(&left, &right)
+                            return Ok(self.arena.alloc(Value::Number(left + right)));
+                        } else if let (Value::String(left), Value::String(right)) = &(left, right)
                         {
                             if operator.r#type == TokenType::Plus {
-                                return Ok(Value::String(format!("{left}{right}")));
+                                return Ok(self.arena.alloc(Value::String(format!("{left}{right}"))));
                             }
                         } else {
                             return Err(RuntimeError::new(
@@ -187,13 +191,13 @@ impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
                     }
                     TokenType::Slash => {
                         let (left, right) =
-                            Interpreter::check_number_operands(operator, &left, &right)?;
-                        return Ok(Value::Number(left / right));
+                            Interpreter::check_number_operands(operator, left, right)?;
+                        return Ok(self.arena.alloc(Value::Number(left / right)));
                     }
                     TokenType::Star => {
                         let (left, right) =
-                            Interpreter::check_number_operands(operator, &left, &right)?;
-                        return Ok(Value::Number(left * right));
+                            Interpreter::check_number_operands(operator, left, right)?;
+                        return Ok(self.arena.alloc(Value::Number(left * right)));
                     }
                     _ => (),
                 }
@@ -205,7 +209,7 @@ impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
     }
 }
 
-impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
+impl<'a> Interpreter<'a> {
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
             Stmt::Expression(expression) => {
@@ -218,12 +222,12 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
                 Ok(())
             }
             Stmt::Var { name, initializer } => {
-                let value = Value::Nil;
+                let mut value = &Value::Nil;
                 if let Some(initializer) = initializer {
                     value = self.evaluate(initializer)?;
                 }
 
-                self.environment.define(name.lexeme, value);
+                self.environment.define(name.lexeme.clone(), value);
                 Ok(())
             }
         }

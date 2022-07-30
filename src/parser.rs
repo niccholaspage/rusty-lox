@@ -88,7 +88,7 @@ impl<'a> Parser<'a> {
             initializer = Some(self.expression(arena)?);
         }
 
-        self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.");
+        self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.")?;
         Ok(Stmt::Var { name, initializer })
     }
 
@@ -198,7 +198,7 @@ impl<'a> Parser<'a> {
         }
 
         if self.r#match(&[TokenType::Identifier]) {
-            return Ok(arena.alloc(Expr::Variable(&self.get_token_at_index(self.previous()))));
+            return Ok(arena.alloc(Expr::Variable(self.get_token_at_index(self.previous()))));
         }
 
         if self.r#match(&[TokenType::LeftParen]) {

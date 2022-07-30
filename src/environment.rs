@@ -2,18 +2,18 @@ use std::collections::HashMap;
 
 use crate::{interpreter::{Value, RuntimeError}, token::Token};
 
-pub struct Environment {
-    values: HashMap<String, Value>
+pub struct Environment<'a> {
+    values: HashMap<String, &'a Value>
 }
 
-impl Environment {
-    pub fn new() -> Environment {
+impl<'a> Environment<'a> {
+    pub fn new() -> Environment<'a> {
         Environment {
             values: HashMap::new()
         }
     }
 
-    pub fn get(&self, name: &Token) -> Result<&Value, RuntimeError> {
+    pub fn get(&self, name: &Token) -> Result<&'a Value, RuntimeError> {
         let value = self.values.get(&name.lexeme);
 
         match value {
@@ -22,7 +22,7 @@ impl Environment {
         }
     }
 
-    pub fn define(&mut self, name: String, value: Value) {
+    pub fn define(&mut self, name: String, value: &'a Value) {
         self.values.insert(name, value);
     }
 }

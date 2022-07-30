@@ -64,7 +64,8 @@ fn main() {
 
     let context = RefCell::new(Context::new());
 
-    let mut interpreter = Interpreter;
+    let arena = Arena::new();
+    let mut interpreter = Interpreter::new(&arena);
 
     match args.len().cmp(&2) {
         Ordering::Greater => {
