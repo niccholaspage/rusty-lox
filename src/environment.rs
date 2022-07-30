@@ -7,6 +7,12 @@ pub struct Environment {
 }
 
 impl Environment {
+    pub fn new() -> Environment {
+        Environment {
+            values: HashMap::new()
+        }
+    }
+
     pub fn get(&self, name: &Token) -> Result<&Value, RuntimeError> {
         let value = self.values.get(&name.lexeme);
 

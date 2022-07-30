@@ -1,12 +1,13 @@
 use std::cell::RefCell;
 
 use crate::{
+    environment::Environment,
     expr::{self, Expr},
     literal::Literal,
     stmt::{self, Stmt},
     token::Token,
     token_type::TokenType,
-    Context, environment::Environment,
+    Context,
 };
 
 #[derive(PartialEq)]
@@ -36,6 +37,12 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    pub fn new() -> Interpreter {
+        Interpreter {
+            environment: Environment::new(),
+        }
+    }
+
     pub fn interpret(&mut self, context: &RefCell<Context>, statements: Vec<Stmt>) {
         for statement in statements {
             let result = self.execute(&statement);
@@ -77,10 +84,7 @@ impl Interpreter {
     fn check_number_operand(operator: &Token, operand: Value) -> Result<f64, RuntimeError> {
         match operand {
             Value::Number(num) => Ok(num),
-            _ => Err(RuntimeError::new(
-                operator,
-                "Operand must be a number.",
-            )),
+            _ => Err(RuntimeError::new(operator, "Operand must be a number.")),
         }
     }
 
@@ -121,9 +125,7 @@ impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
                 // Unreachable
                 todo!("Handle this case later!")
             }
-            Expr::Variable(name) => {
-                self.environment.get(name)
-            }
+            Expr::Variable(name) => self.environment.get(name),
             Expr::Binary {
                 left,
                 operator,
@@ -209,12 +211,12 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
             Stmt::Expression(expression) => {
                 self.evaluate(expression)?;
                 Ok(())
-            },
+            }
             Stmt::Print(expression) => {
                 let value = self.evaluate(expression)?;
                 println!("{}", Interpreter::stringify(value));
                 Ok(())
-            },
+            }
             Stmt::Var { name, initializer } => {
                 let value = Value::Nil;
                 if let Some(initializer) = initializer {
