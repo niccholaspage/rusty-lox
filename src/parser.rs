@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
-        self.equality(arena)
+        self.assignment(arena)
     }
 
     fn declaration(&'a self, arena: &'a Arena<Expr<'a>>) -> Option<Stmt<'_>> {
@@ -98,6 +98,23 @@ impl<'a> Parser<'a> {
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(Stmt::Expression(value))
+    }
+
+    fn assignment(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
+        let expr = self.equality(arena)?;
+
+        if self.r#match(&[TokenType::Equal]) {
+          let equals = self.previous();
+          let value = self.assignment(arena)?;
+
+          if let Expr::Variable(name) = expr {
+            return Ok(arena.alloc(Expr::Assign{ name, value }));
+          }
+    
+          return Err(self.error(self.get_token_at_index(equals), "Invalid assignment target."));
+        }
+    
+        Ok(expr)
     }
 
     fn equality(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
@@ -209,7 +226,7 @@ impl<'a> Parser<'a> {
             }));
         }
 
-        Err(self.error("Expect expression."))
+        Err(self.error(self.peek(), "Expect expression."))
     }
 
     fn r#match(&self, types: &[TokenType]) -> bool {
@@ -228,11 +245,11 @@ impl<'a> Parser<'a> {
             return Ok(self.advance());
         }
 
-        Err(self.error(message))
+        Err(self.error(self.peek(), message))
     }
 
-    fn error(&self, message: &str) -> ParseError {
-        self.context.borrow_mut().error_with_token(self.peek(), message);
+    fn error(&self, token: &Token, message: &str) -> ParseError {
+        self.context.borrow_mut().error_with_token(token, message);
         ParseError
     }
 

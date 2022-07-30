@@ -22,6 +22,15 @@ impl<'a> Environment<'a> {
         }
     }
 
+    pub fn assign(&mut self, name: &Token, value: &'a Value) -> Result<(), RuntimeError> {
+        if self.values.contains_key(&name.lexeme) {
+            self.values.insert(name.lexeme.clone(), value);
+            return Ok(());
+        }
+
+        Err(RuntimeError::new(name, format!("Undefined variable '{}'.", name.lexeme)))
+    }
+
     pub fn define(&mut self, name: String, value: &'a Value) {
         self.values.insert(name, value);
     }

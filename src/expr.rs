@@ -5,6 +5,10 @@ pub trait Visitor<R> {
 }
 
 pub enum Expr<'a> {
+    Assign {
+        name: &'a Token,
+        value: &'a Expr<'a>
+    },
     Binary {
         left: &'a Expr<'a>,
         operator: &'a Token,

@@ -130,6 +130,11 @@ impl<'a> Interpreter<'a> {
                 todo!("Handle this case later!")
             }
             Expr::Variable(name) => self.environment.get(name),
+            Expr::Assign { name, value } => {
+                let value = self.evaluate(value)?;
+                self.environment.assign(name, value)?;
+                Ok(value)
+            },
             Expr::Binary {
                 left,
                 operator,
