@@ -1,6 +1,13 @@
 use std::cell::RefCell;
 
-use crate::{expr::Expr, literal::Literal, token::Token, token_type::TokenType, visitor::Visitor, Context};
+use crate::{
+    expr::{self, Expr},
+    literal::Literal,
+    stmt::{self, Stmt},
+    token::Token,
+    token_type::TokenType,
+    Context,
+};
 
 #[derive(PartialEq)]
 enum Value {
@@ -17,24 +24,31 @@ pub struct RuntimeError {
 
 impl RuntimeError {
     fn new(token: &Token, message: &'static str) -> RuntimeError {
-        RuntimeError { token_line: token.line, message }
+        RuntimeError {
+            token_line: token.line,
+            message,
+        }
     }
 }
 
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn interpret(&mut self, context: &RefCell<Context>, expr: &Expr) {
-        let value = self.evaluate(expr);
-
-        match value {
-            Ok(value) => println!("{}", Interpreter::stringify(value)),
-            Err(error) => context.borrow_mut().runtime_error(error)
+    pub fn interpret(&mut self, context: &RefCell<Context>, statements: Vec<Stmt>) {
+        for statement in statements {
+            let result = self.execute(&statement);
+            if let Err(error) = result {
+                context.borrow_mut().runtime_error(error);
+            }
         }
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
-        self.visit_expr(expr)
+        expr::Visitor::visit_expr(self, expr)
+    }
+
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+        stmt::Visitor::visit_stmt(self, stmt)
     }
 
     fn is_truthy(value: &Value) -> bool {
@@ -75,15 +89,12 @@ impl Interpreter {
     ) -> Result<(f64, f64), RuntimeError> {
         match (left, right) {
             (Value::Number(left), Value::Number(right)) => Ok((*left, *right)),
-            _ => Err(RuntimeError::new(
-                operator,
-                "Operands must be numbers.",
-            )),
+            _ => Err(RuntimeError::new(operator, "Operands must be numbers.")),
         }
     }
 }
 
-impl Visitor<Result<Value, RuntimeError>> for Interpreter {
+impl expr::Visitor<Result<Value, RuntimeError>> for Interpreter {
     fn visit_expr(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Literal(literal) => {
@@ -151,18 +162,21 @@ impl Visitor<Result<Value, RuntimeError>> for Interpreter {
                         }
                     }
                     TokenType::Plus => {
-                        let result =
-                            Interpreter::check_number_operands(operator, &left, &right);
+                        let result = Interpreter::check_number_operands(operator, &left, &right);
 
-                            if let Ok((left, right)) = result {
-                                return Ok(Value::Number(left + right));
-                            } else if let (Value::String(left), Value::String(right)) = &(&left, &right) {
-                                if operator.r#type == TokenType::Plus {
-                                    return Ok(Value::String(format!("{left}{right}")));
-                                }
-                            } else {
-                                return Err(RuntimeError::new(operator, "Operands must be two numbers or two strings."));
+                        if let Ok((left, right)) = result {
+                            return Ok(Value::Number(left + right));
+                        } else if let (Value::String(left), Value::String(right)) = &(&left, &right)
+                        {
+                            if operator.r#type == TokenType::Plus {
+                                return Ok(Value::String(format!("{left}{right}")));
                             }
+                        } else {
+                            return Err(RuntimeError::new(
+                                operator,
+                                "Operands must be two numbers or two strings.",
+                            ));
+                        }
                     }
                     TokenType::Slash => {
                         let (left, right) =
@@ -179,6 +193,22 @@ impl Visitor<Result<Value, RuntimeError>> for Interpreter {
 
                 // Unreachable
                 todo!("Handle this case later!")
+            }
+        }
+    }
+}
+
+impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+        match stmt {
+            Stmt::Expression(expression) => {
+                self.evaluate(expression)?;
+                Ok(())
+            },
+            Stmt::Print(expression) => {
+                let value = self.evaluate(expression)?;
+                println!("{}", Interpreter::stringify(value));
+                Ok(())
             }
         }
     }

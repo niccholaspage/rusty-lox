@@ -1,12 +1,11 @@
-mod ast_printer;
 mod expr;
 mod literal;
 mod parser;
 mod scanner;
 mod token;
 mod token_type;
-mod visitor;
 mod interpreter;
+mod stmt;
 
 use std::{
     cmp::Ordering,
@@ -15,7 +14,6 @@ use std::{
     process::exit, cell::RefCell,
 };
 
-use ast_printer::AstPrinter;
 use interpreter::{RuntimeError, Interpreter};
 use parser::Parser;
 use token::Token;
@@ -25,7 +23,6 @@ use typed_arena::Arena;
 use crate::scanner::Scanner;
 
 pub struct Context {
-    interpreter: Interpreter,
     had_error: bool,
     had_runtime_error: bool
 }
@@ -33,7 +30,6 @@ pub struct Context {
 impl Context {
     fn new() -> Context {
         Context {
-            interpreter: Interpreter,
             had_error: false,
             had_runtime_error: false
         }
@@ -132,13 +128,13 @@ fn run(context: &RefCell<Context>, interpreter: &mut Interpreter, source: Vec<u8
 
     let arena = Arena::new();
     let mut parser = Parser::new(context, tokens);
-    let expression = parser.parse(&arena);
+    let statements = parser.parse(&arena);
 
     if context.borrow().had_error {
         return;
     }
 
-    let expression = expression.unwrap();
+    let expression = statements.unwrap();
 
     interpreter.interpret(context, expression);
 }

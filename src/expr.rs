@@ -1,5 +1,9 @@
 use crate::{literal::Literal, token::Token};
 
+pub trait Visitor<R> {
+    fn visit_expr(&mut self, expr: &Expr) -> R;
+}
+
 pub enum Expr<'a> {
     Binary {
         left: &'a Expr<'a>,

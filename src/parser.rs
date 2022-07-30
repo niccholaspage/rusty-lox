@@ -1,6 +1,6 @@
 use std::cell::{RefCell, Cell};
 
-use crate::{expr::Expr, literal::Literal, token::Token, token_type::TokenType, Context};
+use crate::{expr::Expr, literal::Literal, token::Token, token_type::TokenType, Context, stmt::Stmt};
 
 use typed_arena::Arena;
 
@@ -25,16 +25,46 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self, arena: &'a Arena<Expr<'a>>) -> Option<&'a Expr> {
-        if let Ok(expr) = self.expression(arena) {
-            Some(expr)
-        } else {
-            None
+    pub fn parse(&'a mut self, arena: &'a Arena<Expr<'a>>) -> Option<Vec<Stmt>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            let statement = self.statement(arena);
+
+            match statement {
+                Ok(statement) => statements.push(statement),
+                Err(_) => return None
+            }
         }
+
+        Some(statements)
     }
 
     fn expression(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
         self.equality(arena)
+    }
+
+    fn statement(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Stmt<'_>, ParseError> {
+        if self.r#match(&[TokenType::Print]) {
+            return self.print_statement(arena);
+        }
+
+        self.expression_statement(arena)
+    }
+
+    fn print_statement(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Stmt<'_>, ParseError> {
+        let value = self.expression(arena)?;
+
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+
+        Ok(Stmt::Print(value))
+    }
+
+    fn expression_statement(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Stmt<'_>, ParseError> {
+        let value = self.expression(arena)?;
+
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+
+        Ok(Stmt::Expression(value))
     }
 
     fn equality(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
