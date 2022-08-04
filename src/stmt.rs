@@ -5,6 +5,9 @@ pub trait Visitor<R> {
 }
 
 pub enum Stmt<'a> {
+    Block {
+        statements: Vec<Stmt<'a>>,
+    },
     Expression(&'a Expr<'a>),
     Print(&'a Expr<'a>),
     Var {

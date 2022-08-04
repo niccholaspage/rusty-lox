@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 use typed_arena::Arena;
 
@@ -35,7 +35,7 @@ impl RuntimeError {
 }
 
 pub struct Interpreter<'a> {
-    environment: Environment<'a>,
+    environment: Rc<RefCell<Environment<'a>>>,
     arena: &'a Arena<Value>
 }
 
@@ -62,6 +62,18 @@ impl<'a> Interpreter<'a> {
 
     fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         self.visit_stmt(stmt)
+    }
+
+    fn execute_block(&mut self, statements: &Vec<Stmt>, environment: Rc<RefCell<Environment<'a>>>) -> Result<(), RuntimeError> {
+        let previous = std::mem::replace(&mut self.environment, environment);
+
+        for statement in statements {
+            self.execute(statement)?;
+        }
+
+        self.environment = previous;
+
+        Ok(())
     }
 
     fn is_truthy(value: &Value) -> bool {
@@ -129,10 +141,10 @@ impl<'a> Interpreter<'a> {
                 // Unreachable
                 todo!("Handle this case later!")
             }
-            Expr::Variable(name) => self.environment.get(name),
+            Expr::Variable(name) => self.environment.borrow().get(name),
             Expr::Assign { name, value } => {
                 let value = self.evaluate(value)?;
-                self.environment.assign(name, value)?;
+                self.environment.borrow_mut().assign(name, value)?;
                 Ok(value)
             },
             Expr::Binary {
@@ -217,6 +229,10 @@ impl<'a> Interpreter<'a> {
 impl<'a> Interpreter<'a> {
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
+            Stmt::Block { statements } => {
+                self.execute_block(statements, Environment::new_with_enclosing(&self.environment))?;
+                Ok(())
+            }
             Stmt::Expression(expression) => {
                 self.evaluate(expression)?;
                 Ok(())
@@ -232,7 +248,7 @@ impl<'a> Interpreter<'a> {
                     value = self.evaluate(initializer)?;
                 }
 
-                self.environment.define(name.lexeme.clone(), value);
+                self.environment.borrow_mut().define(name.lexeme.clone(), value);
                 Ok(())
             }
         }

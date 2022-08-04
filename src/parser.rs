@@ -68,6 +68,10 @@ impl<'a> Parser<'a> {
             return self.print_statement(arena);
         }
 
+        if self.r#match(&[TokenType::LeftBrace]) {
+            return Ok(Stmt::Block { statements: self.block(arena)? });
+        }
+ 
         self.expression_statement(arena)
     }
 
@@ -98,6 +102,19 @@ impl<'a> Parser<'a> {
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(Stmt::Expression(value))
+    }
+
+    fn block(&'a self, arena: &'a Arena<Expr<'a>>) -> Result<Vec<Stmt<'_>>, ParseError> {
+        let mut statements = vec![];
+
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            if let Some(statement) = self.declaration(arena) {
+                statements.push(statement);
+            }
+        }
+
+        self.consume(TokenType::RightBrace, "Expect '}' after block.")?;
+        Ok(statements)
     }
 
     fn assignment(&self, arena: &'a Arena<Expr<'a>>) -> Result<&'a Expr, ParseError> {
